@@ -2,68 +2,91 @@ import pygame
 import random
 
 pygame.init()
-base = pygame.image.load('immagini/base.PNG')
-gameover = pygame.image.load('immagini/gameover.jpg')
-sfondo = pygame.image.load('immagini/sfondoo.png')
-tubo1 = pygame.image.load('immagini/tubo1.PNG')
-tubo2 = pygame.transform.flip(tubo1,False,True)
-uccello = pygame.image.load('immagini/uccelloo.png')
+base_imm = pygame.image.load('immagini/base.PNG')
+gameover_imm = pygame.image.load('immagini/gameover.jpg')
+sfondo_imm = pygame.image.load('immagini/sfondoo.png')
+tubo1_imm = pygame.image.load('immagini/tubo1.PNG')
+tubo2_imm = pygame.transform.flip(tubo1_imm,False,True)
+uccello_imm = pygame.image.load('immagini/uccelloo.png')
 screen = pygame.display.set_mode((280, 384))
 fps = 50
 velocità_movimento = 3
 
-
 def inizio():
     # velocità dell'uccello sulla componente y
-    global uccellox, uccelloy, velocitauccy
-    global basex
-    global tubi
-    uccellox, uccelloy = 40, 150
-    velocitauccy = 0
-    basex = 0
-    tubi = []
-    tubi.append(insieme_tubi())
+    global velocita_uccello_y
+    global coppia_tubi
+    global base
+    global uccello
+
+    velocita_uccello_y = 0
+    coppia_tubi = CoppiaTubi()
+    base = Base()
+    uccello = Uccello()
+    
 
 def disegna_oggetti():
-    screen.blit(sfondo, (0, 0))
-    for tubo in tubi:
-        tubo.disegna_vaiavanti()
-    screen.blit(uccello, (uccellox, uccelloy))
-    screen.blit(base, (basex, 300))
+    screen.blit(sfondo_imm, (0, 0)) # disegna sfondo
 
-class insieme_tubi:
+    coppia_tubi.aggiorna()
+
+    base.aggiorna() # disegna base
+    uccello.aggiorna() # disegna uccello
+    
+class Base:
+    def __init__(self):
+        self.x = 0
+        self.forma = screen.blit(base_imm, (self.x, 320)) # disegna base
+
+    def aggiorna(self):
+        self.x -= velocità_movimento  # riga per far muovere la base
+        if self.x < -45:  # riga per far continuare a muovere la base e non farla fermare
+            self.x = 0
+
+        self.forma = screen.blit(base_imm, (self.x, 320)) # disegna base
+
+    def scontro(self, uccello):
+        if self.forma.colliderect(uccello.forma):
+            fine_gioco()
+
+class CoppiaTubi:
     def __init__(self) -> None:
         self.x = 300
-        self.y = random.randint(-75, 150)
+        self.y = random.randint(-tubo1_imm.get_height() + 15, -tubo1_imm.get_height() + 150)
 
-    def disegna_vaiavanti(self):
+        self.forma1 = screen.blit(tubo1_imm, (self.x, self.y))
+        self.forma2 = screen.blit(tubo2_imm, (self.x, self.y + tubo2_imm.get_height() + 120))
+
+    def aggiorna(self):
         self.x -= velocità_movimento
-        # aggiungo 210 perchè così è in basso
-        screen.blit(tubo1, (self.x, self.y+210))
-        # sottraggo 210 così è in alto
-        screen.blit(tubo2, (self.x, self.y-210))
 
-    def scontro(self, uccello, uccellox, uccelloy):
-        tol = 5
-        ucc_destra = uccellox+uccello.get_width()-tol
-        ucc_sinistra = uccellox+tol
-        tubi_destra = self.x+tubo2.get_width()
-        tubi_sinistra = self.x
-        ucc_su = uccelloy+tol
-        ucc_giu = uccelloy+uccello.get_height()-tol
-        tubi_su = self.y+110
-        tubi_giu = self.y+210
+        # aggiungo 210 perchè così è in basso
+        self.forma1 = screen.blit(tubo1_imm, (self.x, self.y))
+
+        # sottraggo 210 così è in alto
+        self.forma2 = screen.blit(tubo2_imm, (self.x, self.y + tubo2_imm.get_height() + 120))
+
+    def scontro(self, uccello):
         # in questo modo vado a verificare se tubo e uccello sono sovrapposti
-        if ucc_destra > tubi_sinistra and ucc_sinistra < tubi_destra:
-            if ucc_su < tubi_su or ucc_giu > tubi_giu:
-                fine_gioco()
+        if self.forma1.colliderect(uccello.forma) or self.forma2.colliderect(uccello.forma):
+            fine_gioco()
+
+class Uccello:
+    def __init__(self):
+        self.y = 150
+        self.forma = screen.blit(uccello_imm, (40, self.y))
+
+    def aggiorna(self):
+        self.y += velocita_uccello_y
+        self.forma = screen.blit(uccello_imm, (40, self.y))
+
 
 def aggiornamento_schermo():
     pygame.display.update()
     pygame.time.Clock().tick(fps)
     
 def fine_gioco():
-    screen.blit(gameover, (90, 150))
+    screen.blit(gameover_imm, (90, 150))
     aggiornamento_schermo()
     riniziare = False
     while not riniziare:
@@ -75,28 +98,32 @@ def fine_gioco():
                 pygame.quit()
 
 inizio()
-while True:
-    basex -= velocità_movimento  # riga per far muovere la base
-    if basex < -45:  # riga per far continuare a muovere la base e non farla fermare
-        basex = 0
-    velocitauccy += 1
-    uccelloy += velocitauccy
-    for i in pygame.event.get():  # i sta ad indicare qualsiasi azione
-        if (i.type == pygame.KEYDOWN and i.key == pygame.K_UP):
-            velocitauccy = -10
-        if i.type == pygame.QUIT:
-            pygame.quit()
-    if tubi[-1].x < 150:
-        tubi.append(insieme_tubi())
-        # con questa riga si continuano ad aggiungere i tubi man mano che si va avanti
-        for tubo in tubi:
-            tubo.scontro(uccello, uccellox, uccelloy)
-    if uccelloy > 280:  # 280 è il livello della base
-        fine_gioco()
 
+while True:
     disegna_oggetti()
     aggiornamento_schermo()
 
+    velocita_uccello_y += 1
+
+    for i in pygame.event.get():  # i sta ad indicare qualsiasi azione
+        if (i.type == pygame.KEYDOWN and i.key == pygame.K_UP):
+            velocita_uccello_y = -10
+        if i.type == pygame.QUIT:
+            pygame.quit()
+
+    # controlla che l'uccello non abbia raggiunto il limite superiore
+    if uccello.forma.top < 0:
+        fine_gioco()
+
+    # controlla che l'uccello non abbia toccato la base
+    base.scontro(uccello)
+
+    # controlla che l'uccello non si sia scontrato con un tubo
+    coppia_tubi.scontro(uccello)
+
+    # se il primo tubo è scomparso dallo schermo, rimuovilo
+    if coppia_tubi.x <= -tubo1_imm.get_width():
+        coppia_tubi = CoppiaTubi()
 
 
 
